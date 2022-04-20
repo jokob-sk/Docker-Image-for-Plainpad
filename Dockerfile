@@ -10,38 +10,41 @@ RUN apt update \
     && apt install git -y \
     && apt $myinstall sudo -y
 
-#add the pi user
-RUN useradd -ms /bin/bash pi 
-WORKDIR /home/pi
-
-
 # Plainpad
 RUN apt clean \    
     && apt $myinstall nodejs -y \
     && git clone https://github.com/alextselegidis/plainpad.git    \ 
     # delete .git specific files to make the image smaller
-    && rm -r /home/pi/plainpad/.git 
+    && rm -r /plainpad/.git 
 
-RUN apt install php php-cgi php-fpm php-sqlite3 -y 
+# php-cgi php-fpm php-sqlite3 -y 
+RUN apt $myinstall php -y 
 RUN apt install wget -y
 RUN apt install php-curl -y
 RUN wget -O composer-setup.php https://getcomposer.org/installer
 RUN sudo php composer-setup.php --install-dir=/usr/local/bin --filename=composer
 RUN apt install php-zip -y
 RUN apt update && sudo apt upgrade -y
-RUN chmod -R 770 plainpad \
-    && cd plainpad 
+RUN chmod -R 770 plainpad 
+# RUN     && cd plainpad 
 
-WORKDIR /home/pi/plainpad
+
 RUN composer self-update --1
 RUN sudo apt install php-mbstring -y
 RUN sudo apt install php-dom -y
-RUN ./project setup  
+RUN apt install unzip -y
+RUN apt install nodejs npm -y
+
+
+# overwrite the setup.sh script - relative paths don't seem to be specified correctly, fixing
+ADD setup.sh /plainpad/scripts/
+RUN chmod +x /plainpad/scripts/setup.sh
+RUN cd /plainpad && ./project setup  
 # Expose the below port
 EXPOSE 3000
 
-# Set up startup script to run two commands, cron and the lighttpd server
-ADD start.sh /home/pi
-RUN chmod +x /home/pi/start.sh
+# Set up startup script 
+ADD start.sh /plainpad/
+RUN chmod +x /plainpad/start.sh
 
-CMD ["/home/pi/start.sh"]
+CMD ["/plainpad/start.sh"]
